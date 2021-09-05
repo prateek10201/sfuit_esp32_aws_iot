@@ -17,6 +17,8 @@ MQTTClient client = MQTTClient(256);
 float BPM, SpO2;
 PulseOximeter pox;
 uint32_t tsLastReport = 0;
+const int pin = 34;
+float fahrenheit;
 
 void onBeatDetected()
 {
@@ -70,6 +72,7 @@ void publishMessage()
   StaticJsonDocument<200> doc;
   doc["BPM"] = BPM;
   doc["SpO2"] = SpO2;
+  doc["Temparature"] = temperature();
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer); // print to client
 
@@ -99,7 +102,7 @@ void setupPox()
   pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
 }
 
-void checkPox()
+void checkPox_checkTemp()
 {
   if (millis() - tsLastReport > REPORTING_PERIOD_MS)
   {
@@ -119,6 +122,20 @@ void checkPox()
   }
   }
 
+float temperature()
+{
+  int analogValue = analogRead(pin);
+  float millivolts = (analogValue/4096.0) * 5000; 
+  float celsius = millivolts/10;
+  Serial.print("in DegreeC=   ");
+  Serial.println(celsius);
+  
+  fahrenheit = ((celsius * 9)/5 + 32);
+  Serial.print(" in Farenheit=   ");
+  Serial.println(fahrenheit);
+  return fahrenheit;
+  }
+
 void setup() {
   Serial.begin(115200);
   pinMode(19, OUTPUT);
@@ -132,8 +149,8 @@ void loop() {
   pox.update();
   BPM = pox.getHeartRate();
   SpO2 = pox.getSpO2();
-
-  checkPox();
+  
+  checkPox_checkTemp();
   //client.loop();
   //delay(1000);
 }
